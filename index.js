@@ -14,15 +14,23 @@ app.get('/', (req, res) => {
 })
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = process.env.DB_URI;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 const run = async () => {
     try{
         const themeCollection = client.db('TPData').collection('themes');
-        app.get('/themes', async(req, res) => {
-            const query = {}
-            const result = await themeCollection.find(query).toArray();
+        app.get('/themes', async (req, res) => {
+            const size = Number(req.query.size);
+            const query = {};
+            const cursor = themeCollection.find(query).sort({_id:-1}).limit(size);
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+        app.get('/themes/:id', async(req, res) => {
+            const id = req.params.id;
+            const filter = {_id: ObjectId(id)}
+            const result = await themeCollection.findOne(filter)
             res.send(result);
         })
     }

@@ -36,7 +36,7 @@ const verifyJWTAuth = (req, res, next) => {
 }
 
 const run = async () => {
-    try{
+    try {
         const themeCollection = client.db('TPData').collection('themes');
         const usersCollection = client.db('TPData').collection('users');
         // Admin Verifications
@@ -78,13 +78,13 @@ const run = async () => {
         app.get('/themes', async (req, res) => {
             const size = Number(req.query.size);
             const query = {};
-            const cursor = themeCollection.find(query).sort({_id:-1}).limit(size);
+            const cursor = themeCollection.find(query).sort({ _id: -1 }).limit(size);
             const result = await cursor.toArray();
             res.send(result);
         })
-        app.get('/themes/:id', verifyJWTAuth, async(req, res) => {
+        app.get('/themes/:id', async (req, res) => {
             const id = req.params.id;
-            const filter = {_id: ObjectId(id)}
+            const filter = { _id: ObjectId(id) }
             const result = await themeCollection.findOne(filter)
             res.send(result);
         })
@@ -107,14 +107,27 @@ const run = async () => {
             const result = await usersCollection.updateOne(filter, updatedDoc, options);
             res.send(result);
         })
-        app.get('/users', verifyJWTAuth, async(req, res) => {
-            const query = {};
-            const result = await usersCollection.find(query).toArray();
+        app.get('/users/:email', verifyJWTAuth, async (req, res) => {
+            const email = req.params.email;
+            console.log(email);
+            const result = await usersCollection.findOne({email});
             res.send(result);
         })
+        app.get('/users/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email }
+            const user = await usersCollection.findOne(query);
+            res.send({ admin: user?.role === 'admin' });
+        })
+        app.get('/users/developer/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email }
+            const user = await usersCollection.findOne(query);
+            res.send({ seller: user?.role === 'developer' });
+        })
     }
-    catch{}
-    finally{}
+    catch { }
+    finally { }
 }
 run().catch(er => {
     console.error(err)

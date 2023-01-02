@@ -36,6 +36,7 @@ const run = async () => {
         const themeCollection = client.db('TPData').collection('themes');
         const usersCollection = client.db('TPData').collection('users');
         const ordersCollection = client.db('TPData').collection('orders');
+        const wishlistCollection = client.db('TPData').collection('wishlist');
         // Admin Verifications
         const verifyAdmin = async (req, res, next) => {
             const decodedEmail = req.decoded.email;
@@ -124,6 +125,7 @@ const run = async () => {
         app.put('/order', async (req, res) => {
             const order = req.body;
             const {
+                booking_id,
                 userEmail,
                 title,
                 thumb,
@@ -131,6 +133,7 @@ const run = async () => {
                 live_preview
             } = order;
             const filter = {
+                booking_id,
                 userEmail,
                 title,
                 thumb,
@@ -140,6 +143,7 @@ const run = async () => {
             const options = { upsert: true };
             const updatedDoc = {
                 $set: {
+                    booking_id,
                     userEmail,
                     title,
                     thumb,
@@ -150,12 +154,58 @@ const run = async () => {
             const result = await ordersCollection.updateOne(filter, updatedDoc, options)
             res.send(result);
         })
+        app.get('/order/:id', verifyJWTAuth, async(req, res) => {
+            const id = req.params.id;
+            const filter = {booking_id: id}
+            const result = await ordersCollection.findOne(filter);
+            res.send(result)
+        })
         app.get('/order/:email', verifyJWTAuth, async(req, res) => {
             const email = req.params.email;
             const filter = {
                 userEmail: email
             }
             const result = await ordersCollection.find(filter).toArray();
+            res.send(result);
+        })
+        app.put('/wishlist', async(req, res) => {
+            const wishlist = req.body;
+            const {
+                booking_id,
+                userEmail,
+                title,
+                thumb,
+                price,
+                live_preview
+            } = wishlist;
+            const filter = {
+                booking_id,
+                userEmail,
+                title,
+                thumb,
+                price,
+                live_preview
+            }
+            const options = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    booking_id,
+                    userEmail,
+                    title,
+                    thumb,
+                    price,
+                    live_preview
+                }
+            }
+            const result = await wishlistCollection.updateOne(filter, updatedDoc, options)
+            res.send(result);
+        })
+        app.get('/wishlist/:email', verifyJWTAuth, async(req, res) => {
+            const email = req.params.email;
+            const filter = {
+                userEmail: email
+            }
+            const result = await wishlistCollection.find(filter).toArray(); 
             res.send(result);
         })
         // app.get('/developers/:role', async(req, res) => {

@@ -154,13 +154,7 @@ const run = async () => {
             const result = await ordersCollection.updateOne(filter, updatedDoc, options)
             res.send(result);
         })
-        app.get('/order/:id', verifyJWTAuth, async(req, res) => {
-            const id = req.params.id;
-            const filter = {booking_id: id}
-            const result = await ordersCollection.findOne(filter);
-            res.send(result)
-        })
-        app.get('/order/:email', verifyJWTAuth, async(req, res) => {
+        app.get('/orders/:email', verifyJWTAuth, async (req, res) => {
             const email = req.params.email;
             const filter = {
                 userEmail: email
@@ -168,7 +162,19 @@ const run = async () => {
             const result = await ordersCollection.find(filter).toArray();
             res.send(result);
         })
-        app.put('/wishlist', async(req, res) => {
+        app.get('/order/:id', verifyJWTAuth, async (req, res) => {
+            const id = req.params.id;
+            const filter = { booking_id: id }
+            const result = await ordersCollection.findOne(filter);
+            res.send(result)
+        })
+        app.delete('/deleteorder/:id', verifyJWTAuth, async(req, res) => {
+            const id = req.params.id;
+            const filter = {booking_id: id};
+            const result = await ordersCollection.deleteOne(filter);
+            res.send(result);
+        })
+        app.put('/wishlist', async (req, res) => {
             const wishlist = req.body;
             const {
                 booking_id,
@@ -200,12 +206,12 @@ const run = async () => {
             const result = await wishlistCollection.updateOne(filter, updatedDoc, options)
             res.send(result);
         })
-        app.get('/wishlist/:email', verifyJWTAuth, async(req, res) => {
+        app.get('/wishlists/:email', verifyJWTAuth, async (req, res) => {
             const email = req.params.email;
             const filter = {
                 userEmail: email
             }
-            const result = await wishlistCollection.find(filter).toArray(); 
+            const result = await wishlistCollection.find(filter).toArray();
             res.send(result);
         })
         // app.get('/developers/:role', async(req, res) => {

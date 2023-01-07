@@ -168,15 +168,35 @@ const run = async () => {
             const result = await usersCollection.findOne({ email });
             res.send(result);
         })
-        app.put('/acceptingverification/:email', async(req, res) => {
+        app.get('/developers', verifyJWTAuth, verifyAdmin, async (req, res) => {
+            const result = await usersCollection.find({ role: 'developer' }).toArray();
+            res.send(result);
+        })
+        app.get('/allclients', verifyJWTAuth, verifyAdmin, async (req, res) => {
+            const result = await usersCollection.find({ role: 'client' }).toArray();
+            res.send(result);
+        })
+        app.delete('/deleteclient/:id', verifyJWTAuth, verifyAdmin, async(req, res) => {
+            const id = req.params.id;
+            const filter = {_id:ObjectId(id)};
+            const result = await usersCollection.deleteOne(filter);
+            res.send(result)
+        })
+        app.delete('/deletedeveloper/:id', verifyJWTAuth, verifyAdmin, async(req, res) => {
+            const id = req.params.id;
+            const filter = {_id:ObjectId(id)};
+            const result = await usersCollection.deleteOne(filter);
+            res.send(result)
+        })
+        app.put('/acceptingverification/:email', async (req, res) => {
             const email = req.params.email;
-            const filter = {email: email};
+            const filter = { email: email };
             const updatedDoc = {
                 $set: {
                     verified: true
                 }
             }
-            const options = {upsert: true}
+            const options = { upsert: true }
             const result = await usersCollection.updateOne(filter, updatedDoc, options)
             res.send(result)
         })
@@ -331,9 +351,9 @@ const run = async () => {
             const result = await requestCollection.find({}).toArray();
             res.send(result);
         })
-        app.delete('/deleterequest/:email', verifyJWTAuth, verifyAdmin, async(req, res) => {
+        app.delete('/deleterequest/:email', verifyJWTAuth, verifyAdmin, async (req, res) => {
             const email = req.params.email;
-            const filter = {email};
+            const filter = { email };
             const result = await requestCollection.deleteOne(filter);
             res.send(result);
         })

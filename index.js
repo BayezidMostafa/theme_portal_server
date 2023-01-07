@@ -6,6 +6,8 @@ const app = express();
 const port = process.env.PORT | 5000;
 const jwt = require('jsonwebtoken')
 
+const stripe = require("stripe")(process.env.SECRET_STRIPE_KEY);
+
 // Middleware
 app.use(cors());
 app.use(express.json())
@@ -38,6 +40,8 @@ const run = async () => {
         const ordersCollection = client.db('TPData').collection('orders');
         const wishlistCollection = client.db('TPData').collection('wishlist');
         const requestCollection = client.db('TPData').collection('request');
+        const paidCollection = client.db('TPData').collection('paid');
+
         // Admin Verifications
         const verifyAdmin = async (req, res, next) => {
             const decodedEmail = req.decoded.email;
@@ -176,15 +180,15 @@ const run = async () => {
             const result = await usersCollection.find({ role: 'client' }).toArray();
             res.send(result);
         })
-        app.delete('/deleteclient/:id', verifyJWTAuth, verifyAdmin, async(req, res) => {
+        app.delete('/deleteclient/:id', verifyJWTAuth, verifyAdmin, async (req, res) => {
             const id = req.params.id;
-            const filter = {_id:ObjectId(id)};
+            const filter = { _id: ObjectId(id) };
             const result = await usersCollection.deleteOne(filter);
             res.send(result)
         })
-        app.delete('/deletedeveloper/:id', verifyJWTAuth, verifyAdmin, async(req, res) => {
+        app.delete('/deletedeveloper/:id', verifyJWTAuth, verifyAdmin, async (req, res) => {
             const id = req.params.id;
-            const filter = {_id:ObjectId(id)};
+            const filter = { _id: ObjectId(id) };
             const result = await usersCollection.deleteOne(filter);
             res.send(result)
         })
@@ -358,6 +362,40 @@ const run = async () => {
             res.send(result);
         })
 
+        // Payment API
+
+        app.post('/create-payment-intent', async (req, res) => {
+            const order = req.body;
+            const price = parseInt(order.price);
+            console.log(typeof (price));
+            const amount = price * 100;
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                currency: 'usd',
+                amount: amount,
+                "payment_method_types": [
+                    "card"
+                ]
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
+        app.put('/payments', async (req, res) => {
+            const paymentData = req.body;
+            const result = await paidCollection.insertOne(paymentData);
+            const booking_id = paymentData.booking_id;
+            const filter = { booking_id };
+            const options = {upsert: true};
+            const updatedDoc = {
+                $set: {
+                    paid: true,
+                    transactionID: paymentData.transactionID
+                }
+            }
+            const updateResult = await ordersCollection.updateOne(filter, updatedDoc, options);
+            res.send(updateResult)
+        })
     }
     catch { }
     finally { }

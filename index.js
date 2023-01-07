@@ -37,6 +37,7 @@ const run = async () => {
         const usersCollection = client.db('TPData').collection('users');
         const ordersCollection = client.db('TPData').collection('orders');
         const wishlistCollection = client.db('TPData').collection('wishlist');
+        const requestCollection = client.db('TPData').collection('request');
         // Admin Verifications
         const verifyAdmin = async (req, res, next) => {
             const decodedEmail = req.decoded.email;
@@ -70,7 +71,6 @@ const run = async () => {
             }
             const result = await usersCollection.updateOne(filter, updateDoc, options);
             const token = jwt.sign(user, process.env.SECRET_ACCESS_TOKEN, { expiresIn: '5d' })
-
             return res.send({ result, token })
         })
         app.get('/themes', async (req, res) => {
@@ -78,6 +78,62 @@ const run = async () => {
             const query = {};
             const cursor = themeCollection.find(query).sort({ _id: -1 }).limit(size);
             const result = await cursor.toArray();
+            res.send(result);
+        })
+        app.put('/theme', verifyJWTAuth, verifyDeveloper, async (req, res) => {
+            const theme = req.body;
+            const {
+                title,
+                thumb,
+                full_picture,
+                price,
+                main_tech,
+                live_preview,
+                email,
+                dev_profile,
+                template_features,
+                technologies
+            } =
+                theme;
+            const filter = {
+                title,
+                thumb,
+                full_picture,
+                price,
+                main_tech,
+                live_preview,
+                email,
+                dev_profile,
+                template_features,
+                technologies
+            };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    title,
+                    thumb,
+                    full_picture,
+                    price,
+                    main_tech,
+                    live_preview,
+                    email,
+                    dev_profile,
+                    template_features,
+                    technologies
+                }
+            };
+            const result = await themeCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
+        })
+        app.delete('/deletemytheme/:id', verifyJWTAuth, verifyDeveloper, async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const result = await themeCollection.deleteOne(filter);
+            res.send(result);
+        })
+        app.get('/devtheme/:email', verifyJWTAuth, verifyDeveloper, async (req, res) => {
+            const email = req.params.email;
+            const result = await themeCollection.find({ email }).toArray();
             res.send(result);
         })
         app.get('/themes/:id', async (req, res) => {
@@ -92,14 +148,16 @@ const run = async () => {
             const filter = {
                 name,
                 email,
-                role
+                role,
+                verified: false
             }
             const options = { upsert: true }
             const updatedDoc = {
                 $set: {
                     name,
                     email,
-                    role
+                    role,
+                    verified: false
                 }
             }
             const result = await usersCollection.updateOne(filter, updatedDoc, options);
@@ -109,6 +167,18 @@ const run = async () => {
             const email = req.params.email;
             const result = await usersCollection.findOne({ email });
             res.send(result);
+        })
+        app.put('/acceptingverification/:email', async(req, res) => {
+            const email = req.params.email;
+            const filter = {email: email};
+            const updatedDoc = {
+                $set: {
+                    verified: true
+                }
+            }
+            const options = {upsert: true}
+            const result = await usersCollection.updateOne(filter, updatedDoc, options)
+            res.send(result)
         })
         app.get('/users/admin/:email', async (req, res) => {
             const email = req.params.email;
@@ -122,6 +192,7 @@ const run = async () => {
             const user = await usersCollection.findOne(query);
             res.send({ developer: user?.role === 'developer' });
         })
+
         app.put('/order', async (req, res) => {
             const order = req.body;
             const {
@@ -168,9 +239,9 @@ const run = async () => {
             const result = await ordersCollection.findOne(filter);
             res.send(result)
         })
-        app.delete('/deleteorder/:id', verifyJWTAuth, async(req, res) => {
+        app.delete('/deleteorder/:id', verifyJWTAuth, async (req, res) => {
             const id = req.params.id;
-            const filter = {booking_id: id};
+            const filter = { booking_id: id };
             const result = await ordersCollection.deleteOne(filter);
             res.send(result);
         })
@@ -214,13 +285,58 @@ const run = async () => {
             const result = await wishlistCollection.find(filter).toArray();
             res.send(result);
         })
-        // app.get('/developers/:role', async(req, res) => {
-        //     const role = req.params.role;
-        //     const filter = {
-        //         role
-        //     }
-        //     const result = await usersCollection.find()
-        // })
+        app.delete('/deletewish/:id', verifyJWTAuth, async (req, res) => {
+            const id = req.params.id;
+            const filter = { booking_id: id };
+            const result = await wishlistCollection.deleteOne(filter);
+            res.send(result);
+        })
+        app.put('/request', verifyJWTAuth, verifyDeveloper, async (req, res) => {
+            const requestInfo = req.body;
+            const { email,
+                displayName,
+                photoURL,
+                role,
+                project_link,
+                resume_link } = requestInfo;
+            const filter = {
+                email,
+                displayName,
+                photoURL,
+                role,
+                project_link,
+                resume_link,
+            }
+            const options = { upsert: true }
+            const updateDoc = {
+                $set: {
+                    email,
+                    displayName,
+                    photoURL,
+                    role,
+                    project_link,
+                    resume_link,
+                }
+            }
+            const result = await requestCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
+
+        })
+        app.get('/issubmitted/:email', verifyJWTAuth, verifyDeveloper, async (req, res) => {
+            const email = req.params.email;
+            const result = await requestCollection.findOne({ email });
+            res.send(result);
+        })
+        app.get('/requested', verifyJWTAuth, verifyAdmin, async (req, res) => {
+            const result = await requestCollection.find({}).toArray();
+            res.send(result);
+        })
+        app.delete('/deleterequest/:email', verifyJWTAuth, verifyAdmin, async(req, res) => {
+            const email = req.params.email;
+            const filter = {email};
+            const result = await requestCollection.deleteOne(filter);
+            res.send(result);
+        })
 
     }
     catch { }
